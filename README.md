@@ -40,6 +40,8 @@ Efficient Estimation of Word Representations in Vector Space
     왜냐하면 이전 연구에서는 신경망에 학습된 분산 표현이 단어 간의 선형 관계를 보존하는 데에 LSA보다 우수하다는 것이 밝혀졌고 LDA는 large dataset에 대해서 cost가 높다는 한계가 밝혀졌기 때문임.
     유사하게, 다른 model들과 비교하여 본 논문에서는 train에 필요한 parameter의 수에 따른 계산 복잡도를 정의한다. 또한 이를 최소화하며 정확도를 높이기 위한 방법을 찾음.
     모든 model에서 training time은 다음에 비례함.
+
+
     <img width="213" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/5dc22a45-8957-4076-882e-ec25c079348a">
     
     E = train의 epoch수, T = training set의 word수, Q = defined further for each model architecture
