@@ -47,6 +47,78 @@ Efficient Estimation of Word Representations in Vector Space
     E = train의 epoch수, T = training set의 word수, Q = defined further for each model architecture
     
     (*typically E = 3~50, T >= one billion, 모든 model은 SGD와 backpropagation으로 훈련*)
+
+  - 2.1 Feedforward Neural Net Language Model(NNLM)
+    - NNLM은 input,projection, hidden, output layer로 구성되어 있음.
+      <img width="766" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/d31388f4-b23f-435b-bd0e-7aee8d0edc0c">
+      
+      input layer에서는 one-hot encoding된 단어들이 input으로 주어진다. 총 단어의 개수는 V개, 입력 단어의 개수를 N개(총 V개의 단어내에서 중복이 있을 수 있으므로)라 하면 NxV 행렬이 만들어진다.
+      이 input vector들은 각각 1xV 형태로 주어지고 VxD projection matrix에 의해 1xD(NxV proj VxD = NxD)의 vector로 사영하게 됨. -> 각각의 vector들을 모아서 하나의 거대한 word 행렬 제작
+
+      이렇게 만들어진 NxD 행렬을 다시 hidden layer에 해당되는 DxH 행렬과 연산하여 NxH 행렬을 출력하게 되고 최종적으로 HxV output layer를 통해 NxV(각각은 1xV)로 출력되게 된다.
+      여기에 softmax를 적용해주고 ground truth와의 cross entropy를 최소화하는 방식으로 진행한다.
+      이러한 구조의 cost function은 다음과 같음 :
+
+      <img width="386" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/ebc13b5e-92f4-44fb-b7ae-1f5ed4871135">
+
+      NNLM의 구조는 projection과 hidden layer 로 인해 연산이 복잡해지는데 N=10이라 가정하면 projection layer(P)는 500-2000이고, hidden layer(H)의 크기는 500-1000이 되게 된다.
+      시간복잡도가 굉장히 높게 나오는데 이를 줄이기 위해서 hierarchical Softmax를 사용할 수 있다.
+
+    - Hierarchical Softmax
+      - ![image](https://github.com/mySongminkyu/Word2Vec/assets/132251519/0000867c-9b4d-4af7-bc9e-2c1cc53e4831)
+
+     
+        다음은 어떤 단어를 중심으로 가정한 뒤 cost가 나올 확률을 binary tree를 사용하여 계산하는 것인데, 모든 node에 대하여 확률을 다 합하면 1이 나오므로 확률분포를 이루게 되며 이를 이용하면 일반적인 softmax처럼 활용할 수 있는 것이다.
+        또한 binary tree를 사용하였으므로 총 단어의 개수가 V라 했을때 연산량을 $log_2V$ 로 줄일 수 있다.
+        여기서 어떤 중심을 기준으로 cost를 출력하는 output matrix를 train하기 위해서는 6번,4번,3번 node의 weight만 update하면 되는데, 이처럼 연산에 관련된 node만 train하는 것은 negative sampling 방법과 유사한 특징이다.
+
+        하지만 이러한 해결책을 써도 NxDxH 의 복잡도는 해결되지 않음 
+
+  - 2.2 Recurrent Neural Net Language Model(RNNLM)
+    - RNNLM은 RNN을 이용하여 얕은 신경망을 통해 복잡한 pattern을 표현함으로서 feedforward NNLM의 한계를 극복하고자 제안되었다.
+      RNN을 이용한 model은 Projection layer를 가지지 않고 오직 input, hidden, output layer만을 가진다.
+
+      <img width="661" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/af2ed5d4-c292-47c2-ac8e-fca956032a6f">
+
+      그 이유는 projection layer와 관계 없이 전의 단어들로 만들어진 context vector와 input vector만을 고려하여 output을 내보내는 model이기 때문이다.
+      결과적으로 각각의 단어들에 대해 적합한 weight만을 고려하고 context는 W_H 와의 연산을 통해 만들어지기 때문에 연속적인 단어의 input을 모아주는 것을 context vector가 수행하기 때문이다.
+
+      이처럼 RNN model의 특이점은 시간의 흐름에 따라 connect를 위해 자신의 hidden layer에 연결을 반복하는 구조이다. 따라서 계산 복잡도는 다음과 같다.
+
+      <img width="235" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/035ed14e-b143-4276-bfd9-11fed45929a0">
+
+      이것 또한 HxV 부분을 Hx$log_2V$로 교체 가능
+
+  - 2.3 Parllel Training of Neural Networks
+    - large dataset에 대해 model을 훈련시키기 위해서 분산 연산 framework인 DistBlief를 사용한다. 이 framework는 같은 model을 복제시키고 각각의 복제본은 중앙 server를 통하여 기울기 update가 동기화된다.
+      따라서 이는 mini-batch를 사용하고 비동기적인 방식으로 기울기를 update하며 Adagrad 최적화 알고리즘을 사용하여 network를 학습함.
+      (이 framework에서는 일반적으로 100개 이상의 복제본을 이용하게 되고, multi-core 연산을 수행하게 됨)
+
+      <img width="790" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/0a62f29f-659f-48c8-9ff3-8e5124f3d170">
+
+  - 
+
+
+
+
+
+
+
+
+      
+
+
+      
+        
+      
+
+
+
+
+
+
+
+
     
 
     
