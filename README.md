@@ -158,10 +158,8 @@ Efficient Estimation of Word Representations in Vector Space
     input layer에서 projection layer로 projection되기 때문에 projection layer 또한 없앨 수 있는 것이다.
 
     따라서, CBoW와 skip-gram은 간단하고 효율적인 모델 구조를 통해 단어 임베딩을 효과적으로 학습하는 데 기여하며, 이는 NLP 분야에서 중요한 발전에 임했다고 생각함.
-    
-  
 
-    
+구현 참고 : *https://github.com/rickiepark/nlp-with-pytorch/tree/main/chapter_5*
 
 
 
