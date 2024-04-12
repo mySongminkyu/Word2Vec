@@ -102,7 +102,70 @@ Efficient Estimation of Word Representations in Vector Space
     먼저 단순한 model을 사용하여 연속적인 word vector를 학습한 뒤 이를 사용하여 N-gram NNLM을 학습함. 
     N-gram NNLM은 문맥을 고려하여 다음 단어를 예측하는데 사용되고 이 model은 연속적인 word vector를 input으로 받아 문장의 의미를 이해하고 다음 단어를 예측하는데에 사용됨.
 
-- 
+- 3.1 Continuous Bag-of-Words Models(CBoW)
+  - 첫 번째로 제안된 CBoW model은 hidden layer가 제거되고 모든 단어가 projection layer를 공유하고 있는 형태의 feedforward NNLM과 유사하다. 모든 단어들은 같은 position으로 projection 된다.
+    우리는 이러한 구조를 Bag of Word(BoW)model이라고 하는데 이전에 porojection된 단어들은 영향을 미치지 못한다. 본 논문에서는 log-linear classifier 4개의 과거 단어와 4개의 미래 단어를 input으로
+    사용하여 중심 단어가 나타나도록 훈련하여 성능을 얻고자 함. -> 주변단어로 중심단어 예측
+
+    훈련 복잡도는 다음과 같음.
+
+    <img width="451" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/f0aeb383-7144-4222-9fe7-d798cdcc3193">
+
+    NNLM 내부에 있는 projection layer의 weight matrix는 모든 단어들이 공유한다는 특성을 가지고 있고 CBoW도 이러한 특성을 갖고 진행한다.
+
+    <img width="397" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/8975e26b-a807-46da-b80f-45332e9501a1">
+
+- 3.2 Continuous Skip-gram Model
+  - 두 번째로 제안된 model구조는 CBoW와 유사한데, input과 output이 바뀌었다고 생각해도 좋다 -> 중심단어로 주변단어 예측
+    단어 간의 간격이 멀수록 보통 단어간의 연관성이 낮아지므로 train data로 적게 부여하여 weight가 낮아지도록 설정했다.(Stochastic sampling method)
+    예측 범위 증가는 word vector의 결과 quality를 향상하지만 복잡도 또한 상승하기에 적절한 범위 설정이 필요하다.
+
+    훈련 복잡도는 다음과 같음.
+
+    <img width="243" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/d4fc479f-0f97-4f79-89c6-07e103ce96b8">
+
+    C는 예측할 단어의 max distance이며 R(1-C)만큼의 개수의 단어들을 랜덤하게 선택하고 이들을 쌍으로 만들어 단어들을 학습시킨다.
+
+    <img width="344" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/158fed10-f375-48e5-96fb-418e3ccb8942">
+
+- 4 Results
+  - 과거의 연구는 직관적으로 단어간의 유사도가 높은 것들을 table로 제시하였는데 단어의 유사도라는 것은 vector에 있어서 단순하게 만들 수 있는 것이 아님.
+    예를 들어 프랑스와 이탈리아가 국가명이라는 연관성을 만드는 것은 어렵지 않지만 확장해서 다른 나라들까지의 유사성을 만드는 것은 쉽지 않다.
+
+    그러나 본 논문에서 제안한 model 구조를 통해 나타난 word vector들은 선형대수의 연산으로서 우리가 찾고 싶은 vector x를 구하고 그것과 cosine distance가 멀지 않은 단어를 정답으로
+    채택한다. 이러한 방식의 훈련은 정확성과 효율성이 뛰어나며 large scale data set으로의 학습은 단어 사이의 미요한 의미상의 관계 학습 또한 가능했다.
+
+    실험은 의미와 형태적 질문을 나누어서 구성했으며 질문에 대해 정확히 동일한 단어로 답변이 나올 때만 정답으로 처리함. (유사어도 불가능 따라서 100%는 불가능)
+
+    <img width="760" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/511ebb3f-0138-4698-82cd-5836951e9d6c">
+
+    <img width="765" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/797e1cbb-4850-4b56-8780-fbc268e065cd">
+
+    <img width="766" alt="image" src="https://github.com/mySongminkyu/Word2Vec/assets/132251519/0cc0142a-1ad8-407d-850e-3a004bf84c9b">
+
+    CBoW의 성능은 데이터 양과 차원이 동시에 높아질수록 높아졌으며 하나만 증가할 경우에는 오히려 감소하는 경향을 보임.
+    
+    또한 MSsoft에서 진행했던 대회에서 단일 Skip-gram 보다 Skip-gram + RNNLMs 에서 매우 높은 성능을 보임.
+
+- 5 Summary
+  - NLP에서 중요한 텍스트를 숫자로 바꾸는 방법은 여러 방법이 있지만 one-hot encoding은 차원이 너무 커지고 단어간의 semantic,syntatic 유사도를 측정할 수 없다는 단점이 있어서 Dense Representation을 사용하였다.
+    이 처럼 단어를 dense vector의 형태로 표현하는 방법을 word embedding이라고 하는데 그 중 하나인 Word2Vec을 알아보았다.
+
+    기존에도 distributional representation을 이용하여 vector를 구하는 방법은 여럿 있었지만, Word2Vec의 장점은 효율성이라 생각한다. 기존에 있던 연산량을 늘리는 layer들을 대체 및 삭제하며 간단한 neural net으로
+    large scale data에 대해서도 계산량을 낮게 유지할 수 있었던 것이 크다고 본다. 
+
+    본 논문에서 제안한 CBoW와 Skip-gram은 기존의 다른 model들과 달리 hidden layer가 존재 하지 않고 하나의 input layer와 output layer를 가져서 복잡도를 줄일 수 있다. 또한 모든 단어들이 동일한 weight matrix를 사용하여
+    input layer에서 projection layer로 projection되기 때문에 projection layer 또한 없앨 수 있는 것이다.
+
+    따라서, CBoW와 skip-gram은 간단하고 효율적인 모델 구조를 통해 단어 임베딩을 효과적으로 학습하는 데 기여하며, 이는 NLP 분야에서 중요한 발전에 임했다고 생각함.
+    
+  
+
+    
+
+
+
+
 
 
 
